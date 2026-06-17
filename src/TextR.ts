@@ -1,12 +1,14 @@
 import { TreeSitterExtractor } from "@plurnk/plurnk-mimetypes";
 import type {
     HandlerContent,
+    MimeRef,
     MimeSymbol,
+    QueryConstructor,
     TreeSitterNode,
     TreeSitterParser,
     TreeSitterTree,
 } from "@plurnk/plurnk-mimetypes";
-import { extract } from "./r.ts";
+import { extract, refsQuery } from "./r.ts";
 
 // text/x-r handler. Tier 2 — tree-sitter-r grammar built to WASM at publish
 // time and shipped alongside this code. Validated against R 4.1+ idioms
@@ -27,10 +29,12 @@ export default class TextR extends TreeSitterExtractor {
             Language: {
                 load(wasmPath: string): Promise<unknown>;
             };
+            Query: QueryConstructor;
         };
         await ts.Parser.init();
         const wasmUrl = new URL("../r.wasm", import.meta.url);
         const lang = await ts.Language.load(wasmUrl.pathname);
+        this.setQueryContext(lang, ts.Query);
         const parser = new ts.Parser();
         parser.setLanguage(lang);
         return parser as unknown as TreeSitterParser;
@@ -38,5 +42,12 @@ export default class TextR extends TreeSitterExtractor {
 
     protected extractFromTree(tree: TreeSitterTree, _content: HandlerContent): MimeSymbol[] {
         return extract(tree.rootNode);
+    }
+
+    // References channel (SPEC §16): function call edges (plain + pkg::fn).
+    // The base collectRefs() owns parse/compile/run/cleanup; every capture is a
+    // direct identifier whose container resolves by line containment.
+    override references(content: HandlerContent): Promise<MimeRef[]> {
+        return this.collectRefs(content, refsQuery, (root) => extract(root));
     }
 }

@@ -159,3 +159,22 @@ function isScreamingSnake(name: string): boolean {
     }
     return hasLetter;
 }
+
+// References query for tree-sitter-r (SPEC §16). R is syntactically uniform —
+// "everything is a call" — but the only high-confidence, name-join-resolvable
+// edge is the function CALL. We emit two shapes of `call`, both precision-first:
+//
+//   call function: (identifier)                    → call (plain free call: foo())
+//   call function: (namespace_operator rhs:)       → call (pkg::fn() / pkg:::fn())
+//
+// Deliberately NOT emitted (precision over recall, SPEC §16):
+//   - member calls `obj$method()` — the function slot is an extract_operator,
+//     not a bound function name; the receiver is a runtime value, not joinable.
+//   - bare identifier reads (the reserved `use` kind).
+//   - `library(pkg)` / `require(pkg)` surface as ordinary `library` calls whose
+//     argument is a bare identifier read — not emitted as an import edge (R has
+//     no bound import symbol to join on; the package name is a dead row at best).
+export const refsQuery = `
+(call function: (identifier) @ref.call)
+(call function: (namespace_operator rhs: (identifier) @ref.call))
+`;
