@@ -1,6 +1,6 @@
 {
     "name": "@plurnk/plurnk-mimetypes-text-r",
-    "version": "0.2.4",
+    "version": "0.2.5",
     "description": "text/x-r mimetype handler for plurnk-service. Tier 2: tree-sitter-r grammar built to WASM and shipped pre-built. Covers R 4.1+ including native pipes, lambdas, S3/S4 object systems, and tidyverse-style code.",
     "type": "module",
     "license": "MIT",
@@ -59,6 +59,6 @@
         "typescript": "^6.0.3"
     },
     "peerDependencies": {
-        "@plurnk/plurnk-mimetypes": "^0.16.0 || ^0.17.0 || ^0.18.0"
+        "@plurnk/plurnk-mimetypes": "^0.16.0 || ^0.17.0 || ^0.18.0 || ^0.19.0"
     }
 }
