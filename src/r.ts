@@ -1,4 +1,5 @@
-import type { MimeSymbol, SymbolKind, TreeSitterNode } from "@plurnk/plurnk-mimetypes";
+import { treeSitterSpan } from "@plurnk/plurnk-mimetypes";
+import type { SymbolKind, TreeSitterNode, TreeSitterSymbolProjection } from "@plurnk/plurnk-mimetypes";
 
 // R SPEC §3 mapping for tree-sitter-r.
 //
@@ -15,8 +16,8 @@ import type { MimeSymbol, SymbolKind, TreeSitterNode } from "@plurnk/plurnk-mime
 //
 // Right-assignment (->) is also handled — it has the same shape with lhs/rhs
 // swapped.
-export function extract(root: TreeSitterNode): MimeSymbol[] {
-    const out: MimeSymbol[] = [];
+export function extract(root: TreeSitterNode): TreeSitterSymbolProjection[] {
+    const out: TreeSitterSymbolProjection[] = [];
     for (let i = 0; i < root.namedChildCount; i += 1) {
         const child = root.namedChild(i);
         if (!child) continue;
@@ -25,7 +26,7 @@ export function extract(root: TreeSitterNode): MimeSymbol[] {
     return out;
 }
 
-function dispatch(node: TreeSitterNode, out: MimeSymbol[]): void {
+function dispatch(node: TreeSitterNode, out: TreeSitterSymbolProjection[]): void {
     if (node.type === "binary_operator") {
         const op = operatorOf(node);
         if (op === "<-" || op === "=" || op === "<<-") {
@@ -43,7 +44,7 @@ function dispatch(node: TreeSitterNode, out: MimeSymbol[]): void {
     }
 }
 
-function handleAssignment(node: TreeSitterNode, out: MimeSymbol[], reversed: boolean): void {
+function handleAssignment(node: TreeSitterNode, out: TreeSitterSymbolProjection[], reversed: boolean): void {
     // For `x <- expr`, lhs=x, rhs=expr; for `expr -> x`, lhs=expr, rhs=x.
     const nameSide = reversed
         ? node.childForFieldName("rhs")
@@ -59,8 +60,7 @@ function handleAssignment(node: TreeSitterNode, out: MimeSymbol[], reversed: boo
         out.push({
             name,
             kind: isS3Method ? "method" : "function",
-            line: node.startPosition.row + 1,
-            endLine: node.endPosition.row + 1,
+            span: treeSitterSpan(node),
             params: extractParams(valueSide.childForFieldName("parameters")),
         });
         return;
@@ -71,12 +71,11 @@ function handleAssignment(node: TreeSitterNode, out: MimeSymbol[], reversed: boo
     out.push({
         name,
         kind,
-        line: node.startPosition.row + 1,
-        endLine: node.endPosition.row + 1,
+        span: treeSitterSpan(node),
     });
 }
 
-function handleCall(node: TreeSitterNode, out: MimeSymbol[]): void {
+function handleCall(node: TreeSitterNode, out: TreeSitterSymbolProjection[]): void {
     const fn = node.childForFieldName("function");
     if (!fn || fn.type !== "identifier") return;
     const fnName = fn.text;
@@ -98,8 +97,7 @@ function handleCall(node: TreeSitterNode, out: MimeSymbol[]): void {
     out.push({
         name: declaredName,
         kind: kindMap[fnName],
-        line: node.startPosition.row + 1,
-        endLine: node.endPosition.row + 1,
+        span: treeSitterSpan(node),
     });
 }
 
