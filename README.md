@@ -40,3 +40,8 @@ Validated against R 4.1+ idioms:
 ## license
 
 MIT.
+
+## Versioning
+
+This package versions independently. Compatibility is declared by its dependency
+ranges; a Plurnk release does not require a release of this package.
